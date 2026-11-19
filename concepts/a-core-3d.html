@@ -28,7 +28,7 @@ body.day2 .hud.note .d1 { display: none; } body.day2 .hud.note .d2 { display: in
 .tagl .name { font: var(--type-title-sm); }
 .tagl .what { display: none; font: var(--type-body-sm); color: var(--text-secondary); max-width: 360px; white-space: normal; margin-top: var(--space-4); }
 .tagl.layer { transform: translate(0, -50%) scale(var(--ui, 1)); transform-origin: left center; }
-.tagl.layer.active .what { display: block; }
+.tagl.layer.active .what, body.zoomed .tagl.layer .what { display: block; }
 body.has-active .tagl.layer:not(.active) { opacity: .4; }
 .tagl.loop { font: var(--type-label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; color: var(--text-secondary); background: var(--color-black); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: var(--space-4) var(--space-12); pointer-events: none; }
 .ctl label { font: var(--type-label-xs); letter-spacing: var(--tracking-label-xs); text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-8); }
@@ -49,7 +49,7 @@ body.has-active .tagl.layer:not(.active) { opacity: .4; }
   <div class="legend"><i></i><span class="d1">One pothole, followed through every layer</span><span class="d2">Next pass: the pothole is patched, the case is closed</span></div></div>
 <div id="tags"></div>
 <nav class="ctl">
-  <a href="a-core-3d.html" aria-current="page">A · Core 3D</a><a href="a-core.html">A · flat</a><a href="b-orbit.html">B · Orbit</a><a href="c-pothole.html">C · One pothole</a>
+  <a href="a-core-3d.html" aria-current="page">A · Core 3D</a><a href="a-core.html">A · flat</a><a href="b-orbit.html">B · Orbit</a><a href="c-pothole.html">C · One pothole</a><a href="d-realism.html">D · Realism</a>
   <span class="gap"></span><button data-play aria-pressed="false">Play</button>
   <label>Air <input id="air" type="range" min="2.4" max="7" step="0.1" value="4.6"></label>
   <button id="reset">Reset view</button>
@@ -75,7 +75,8 @@ scene.add(new THREE.AmbientLight(0xffffff, 1.7));
 const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(-6, 14, 9); scene.add(sun);
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 400);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.minZoom = 0.5; controls.maxZoom = 5; controls.enablePan = false;
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.maxPolarAngle = Math.PI / 2 - 0.02; controls.minZoom = 0.5; controls.maxZoom = 9;
+controls.zoomSpeed = 2.6; controls.zoomToCursor = true; controls.enablePan = true; controls.screenSpacePanning = true;   // the wheel was stiff: faster, and towards the cursor
 
 /* ---- materials and small builders ---- */
 const flat = (c, o) => new THREE.MeshBasicMaterial(Object.assign({ color: new THREE.Color(c) }, o || {}));
@@ -140,6 +141,9 @@ function stand(i, q, w, h, stem, tex, rotY) {
   G[i].add(g); return { g, m, centre: new THREE.Vector3(p.x, stem + h / 2, p.z) };
 }
 const rnd = rng(11);
+/* one colour per kind of finding, the same from Detection up to the city */
+const NAME = { red: 'FENCE', blue: 'GRAFFITI', lime: 'POTHOLE', orange: 'LAMP POST' }, HOLE = { red: 0, blue: 2, lime: 3, orange: 5 };
+const CASE = { red: [40, 85], blue: [40, 85], lime: [85, 85], orange: [85, 40] }, CITY = { red: [36, 86], blue: [53, 36], lime: [70, 70], orange: [88, 70] };
 
 /* 01 Capture: just the roads, and the fleet rushing along them like comets */
 const comets = [];
@@ -161,8 +165,7 @@ const beams = [];
   const fade = canvasTex(8, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, C.black); g.addColorStop(1, C.white); x.fillStyle = g; x.fillRect(0, 0, w, h); });
   const beamGeo = new THREE.CylinderGeometry(0.66, 0.56, 1, 32, 1, true).translate(0, 0.5, 0);
   V.forEach((q, i) => {
-    if (KIND[i].bad) {
-      const f = plane(1.3, 0.87, frameTex({ bad: KIND[i].bad, out: 1 })); f.position.copy(at(1, q[0], q[1])).setY(-0.95 - rnd() * 0.5); f.rotation.set(0.5 + rnd() * 0.5, facing(i) + rnd(), (rnd() - 0.5) * 1.2); G[1].add(f);
+    if (KIND[i].bad) {   // no hole here: what is bad simply stops at the plate (see the flow below)
       return;
     }
     const hole = new THREE.Mesh(new THREE.CircleGeometry(0.56, 32), flat(C.black)); hole.rotation.x = -Math.PI / 2; hole.position.copy(at(1, q[0], q[1])).setY(0.014); G[1].add(hole);
@@ -179,9 +182,10 @@ const beams = [];
     if (i === TIP) { tips[2] = s; swaps.push({ mat: s.m.material, open: s.m.material.map, closed: frameTex({ patch: 1 }) }); } }); }
 
 /* 04 Asset registry */
-{ [[25, 85, 7], [85, 25, 4], [55, 85, 5], [85, 55, 9], [85, 85, 6]].forEach((q) => { const lime = q[0] === 85 && q[1] === 85, th = 0.19;
-    for (let m = 0; m < q[2]; m++) { const top = lime && m === q[2] - 1, b = box(1.25, th - 0.03, 1.25, top ? limeMat : lit(C.g700), top ? 0.0 : 0.35); b.position.copy(at(3, q[0], q[1])).setY(m * th + th / 2); G[3].add(b); }
-    if (lime) tips[3] = { centre: at(3, q[0], q[1]).setY(q[2] * th) }; }); }
+const STACK = { red: [25, 85, 7], blue: [55, 85, 5], lime: [85, 85, 6], orange: [85, 55, 9], grey: [85, 25, 4] }, TILE = 0.19;
+{ Object.keys(STACK).forEach((k) => { const q = STACK[k];
+    for (let m = 0; m < q[2]; m++) { const top = m === q[2] - 1 && k !== 'grey', b = box(1.25, TILE - 0.03, 1.25, top ? (k === 'lime' ? limeMat : flat(C[k])) : lit(C.g700), top ? 0.0 : 0.35); b.position.copy(at(3, q[0], q[1])).setY(m * TILE + TILE / 2); G[3].add(b); }
+    if (k === 'lime') tips[3] = { centre: at(3, q[0], q[1]).setY(q[2] * TILE) }; }); }
 
 /* 05 Case */
 { [[40, 85, 0, 0], [85, 40, 0, Math.PI / 2], [85, 85, 1, Math.PI / 4]].forEach((q) => { const s = stand(4, q, 2.0, 2.1, 0.16, cardTex({ lime: q[2] }), q[3]);
@@ -201,17 +205,55 @@ const beams = [];
   towers.forEach((q) => loader.load('glb/' + q[0] + '.glb', (gltf) => { const t = gltf.scene;
     t.traverse((o) => { if (!o.isMesh) return; o.geometry.computeVertexNormals(); const name = o.material.name; o.material = lit(tone[name] || C.g600); edge(o, name === 'Glass' ? 0.22 : 0.3, 24); });
     t.scale.setScalar(K); t.rotation.y = (-q[4] * Math.PI) / 180; t.position.copy(at(i, q[1], q[2])); G[i].add(t); dirty = true; }));
-  const pin = (x, y, h, lime) => { const g = new THREE.Group(); g.position.copy(at(i, x, y));
-    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, h, 0)]), lime ? new THREE.LineBasicMaterial({ color: new THREE.Color(C.lime) }) : lineMat(0.9)));
-    const head = new THREE.Mesh(new THREE.SphereGeometry(lime ? 0.2 : 0.09, 16, 12), lime ? limeMat : flat(C.white)); head.position.y = h; g.add(head); G[i].add(g); return g; };
-  [[36, 18], [36, 86], [88, 70], [53, 36], [70, 47]].forEach((q) => pin(q[0], q[1], 0.6));
-  const p = pin(70, 70, 1.0, true); swaps.push({ hide: p }); tips[5] = { centre: at(i, 70, 70).setY(1.0) }; }
+  const pin = (x, y, h, c) => { const g = new THREE.Group(); g.position.copy(at(i, x, y));
+    g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, h, 0)]), new THREE.LineBasicMaterial({ color: new THREE.Color(c) })));
+    const head = new THREE.Mesh(new THREE.SphereGeometry(c === C.white ? 0.08 : 0.13, 16, 12), flat(c)); head.position.y = h; g.add(head); G[i].add(g); return g; };
+  [[36, 18], [70, 47]].forEach((q) => pin(q[0], q[1], 0.5, C.white));
+  Object.keys(CITY).forEach((k) => { const q = CITY[k], h = k === 'lime' ? 1.0 : 0.8, g = pin(q[0], q[1], h, C[k]);
+    const lt = canvasTex(Math.round(NAME[k].length * 30 + 40), 64, (x, w, hh) => { x.fillStyle = C[k]; x.fillRect(0, 0, w, hh); x.fillStyle = C.black; x.font = '500 40px "ABC Diatype Mono", monospace'; x.textAlign = 'center'; x.fillText(NAME[k], w / 2, 47); });
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: lt, depthTest: false })); sp.scale.set(0.34 * (lt.image.width / 64), 0.34, 1); sp.position.y = h + 0.36; sp.renderOrder = 5; g.add(sp);
+    if (k === 'lime') swaps.push({ hide: g }); });
+  tips[5] = { centre: at(i, 70, 70).setY(1.0) }; }
 
 /* ---- the pothole thread, the loop, the travelling token ---- */
 const thread = new THREE.Line(new THREE.BufferGeometry(), limeLine); scene.add(thread);
 const loopLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: new THREE.Color(C.g400), dashSize: 0.16, gapSize: 0.16 })); scene.add(loopLine);
 const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.42, 12), flat(C.g400)); scene.add(arrow);
 const token = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 14), limeMat); token.visible = false; scene.add(token);
+/* ---- the flow. What the fleet shoots rises from the roads as particles. Most stop at the plate of the gate;
+   the rest go up through its holes, become findings, are filed as records, gathered into cases
+   and land on the city as named findings. Each particle is a point riding a short path between layers ---- */
+const flow = [], fr = rng(5), tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+const on = (i, x, y, h) => ({ i, p: at(i, x, y).setY(h) });                          // a point that rides on layer i
+const jitter = (o, r) => { o.p.x += (fr() - 0.5) * r; o.p.z += (fr() - 0.5) * r; return o; };
+for (let n = 0; n < 170; n++) flow.push({ kind: 'stop', path: [{ i: 0, p: new THREE.Vector3() }, { i: 1, p: new THREE.Vector3() }], c: C.g400, t: fr(), v: 0.28 + fr() * 0.3 });
+Object.keys(HOLE).forEach((k) => { const q = V[HOLE[k]], s = STACK[k], cs = CASE[k], ct = CITY[k];
+  for (let n = 0; n < 16; n++) flow.push({ kind: 'pass', path: [{ i: 0, p: new THREE.Vector3() }, jitter(on(1, q[0], q[1], 0), 0.5), jitter(on(2, q[0], q[1], 1.1), 0.7)], c: C.white, c2: C[k], key: k, t: fr(), v: 0.16 + fr() * 0.1 });
+  for (let n = 0; n < 9; n++) flow.push({ path: [jitter(on(2, q[0], q[1], 1.3), 0.8), jitter(on(3, s[0], s[1], s[2] * TILE + 0.1), 0.7)], c: C[k], key: k, t: fr(), v: 0.2 + fr() * 0.12 });
+  for (let n = 0; n < 6; n++) flow.push({ path: [jitter(on(3, s[0], s[1], s[2] * TILE + 0.1), 0.6), jitter(on(4, cs[0], cs[1], 1.2), 0.9)], c: C[k], key: k, t: fr(), v: 0.2 + fr() * 0.12 });
+  for (let n = 0; n < 6; n++) flow.push({ path: [jitter(on(4, cs[0], cs[1], 1.6), 0.9), jitter(on(5, ct[0], ct[1], 0.8), 0.25)], c: C[k], key: k, t: fr(), v: 0.2 + fr() * 0.12 }); });
+flow.forEach((f) => { f.col = new THREE.Color(f.c); f.col2 = f.c2 ? new THREE.Color(f.c2) : f.col; });
+const dotTex = canvasTex(32, 32, (x) => { x.fillStyle = C.white; x.beginPath(); x.arc(16, 16, 14, 0, 7); x.fill(); });
+const flowGeo = new THREE.BufferGeometry();
+flowGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(flow.length * 3), 3)); flowGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(flow.length * 3), 3));
+const flowPts = new THREE.Points(flowGeo, new THREE.PointsMaterial({ size: 5 * renderer.getPixelRatio(), sizeAttenuation: false, map: dotTex, alphaTest: 0.4, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+flowPts.frustumCulled = false; scene.add(flowPts);
+function launch(f) {   // a new particle leaves the head of a comet
+  const c = comets[Math.floor(fr() * comets.length)]; f.path[0].p.copy(c.head.position);
+  if (f.kind === 'stop') f.path[1].p.set(c.head.position.x, -TH - 0.03, c.head.position.z);
+}
+function stepFlow(dt, day2) {
+  const pos = flowGeo.attributes.position, colr = flowGeo.attributes.color;
+  flow.forEach((f, n) => {
+    f.t += f.v * dt; if (f.t >= 1) { f.t -= 1; if (f.kind) launch(f); }
+    const segs = f.path.length - 1, u = f.t * segs, k = Math.min(segs - 1, Math.floor(u)), e = u - k, s = e * e * (3 - 2 * e);
+    tmpA.copy(f.path[k].p).add(G[f.path[k].i].position); tmpB.copy(f.path[k + 1].p).add(G[f.path[k + 1].i].position); tmpA.lerp(tmpB, s);
+    let a = Math.min(1, f.t * 9, (1 - f.t) * 9); if (day2 && f.key === 'lime') a = 0;   // the pothole is patched: nothing new comes up for it
+    const c = k >= 1 ? f.col2 : f.col;
+    pos.setXYZ(n, tmpA.x, tmpA.y, tmpA.z); colr.setXYZ(n, c.r * a, c.g * a, c.b * a);
+  });
+  pos.needsUpdate = true; colr.needsUpdate = true;
+}
 let gap = 4.6, loopCurve = null, lift = SIZE.map(() => 0), dirty = true;
 const tipWorld = (i) => tips[i].centre.clone().add(G[i].position);
 function layout() {
@@ -289,10 +331,13 @@ function tick() {
     if (move.curve) token.position.copy(loopCurve.getPoint(e)); else token.position.lerpVectors(move.from, move.to, e); dirty = true; }
   const dt = Math.min(0.05, (now - (tick.prev || now)) / 1000); tick.prev = now;
   comets.forEach((c) => { c.t = (c.t + c.v * dt * c.dir + 1) % 1; c.head.position.lerpVectors(c.a, c.b, c.t); const p = c.tail.geometry.attributes.position, tl = c.head.position.clone().lerp(c.dir > 0 ? c.a : c.b, 0.16);
-    p.setXYZ(0, c.head.position.x, c.head.position.y, c.head.position.z); p.setXYZ(1, tl.x, tl.y, tl.z); p.needsUpdate = true; }); dirty = true;
+    p.setXYZ(0, c.head.position.x, c.head.position.y, c.head.position.z); p.setXYZ(1, tl.x, tl.y, tl.z); p.needsUpdate = true; });
+  stepFlow(dt, document.body.classList.contains('day2'));
+  document.body.classList.toggle('zoomed', camera.zoom > 1.7); dirty = true;
   controls.update();
   if (dirty) { renderer.render(scene, camera); place(); dirty = false; }
 }
+flow.forEach((f) => { if (f.kind) launch(f); });
 layout(); frameView(true);
 renderer.setAnimationLoop(tick); setInterval(() => { if (performance.now() - lastTick > 150) tick(); }, 60);
 window.__cwm3d = { scene, camera, renderer, tick, ready: true };

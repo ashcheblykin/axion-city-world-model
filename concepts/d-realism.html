@@ -1,0 +1,106 @@
+<!doctype html>
+<!-- Concept D · Realism. A separate, pseudo-realistic take: the six layers are the renders Sergei made
+     (refs/sergei/realism, one transparent PNG per layer), put into the same frame as the other concepts:
+     the stack can be pulled apart, every layer is named, the loop brings the next pass.
+     The pictures are his and are used as they are; what is wrong in them is listed in the README. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>City World Model · D · Realism</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+body { background: var(--background-base); color: var(--text-primary); }
+#stage { position: fixed; inset: 0 0 var(--space-48) 0; overflow: hidden; }
+#stack img { position: absolute; user-select: none; -webkit-user-drag: none; pointer-events: none; transition: opacity .3s ease, transform .35s cubic-bezier(.2,.7,.2,1); will-change: transform; }
+.has-active #stack img:not(.active) { opacity: .28; }
+#loop { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#loop path { fill: none; stroke: var(--diagram-edge); stroke-width: 2; stroke-dasharray: 6 6; animation: run 1.2s linear infinite; }
+#loop polygon { fill: var(--diagram-edge); }
+@keyframes run { to { stroke-dashoffset: -12; } }
+.hud { position: fixed; pointer-events: none; zoom: var(--ui, 1); }
+.hud.top { left: var(--space-40); right: var(--space-40); top: var(--space-32); height: var(--space-32); display: flex; align-items: center; justify-content: space-between; font: var(--type-body-sm); }
+.hud.top .nav-logo svg { width: 155px; height: 24px; }
+.hud.lead { left: var(--space-40); top: 96px; width: 400px; }
+.hud.lead h1 { margin: 0 0 var(--space-16); font: var(--type-heading-sm); letter-spacing: var(--tracking-heading-sm); text-wrap: balance; }
+.hud.lead p { margin: 0; font: var(--type-body-sm); color: var(--text-secondary); text-wrap: balance; }
+.hud.note { left: var(--space-40); bottom: 80px; width: 360px; }
+.hud.note h3 { margin: 0 0 var(--space-4); font: var(--type-title-xs); }
+.hud.note p { margin: 0; font: var(--type-body-xs); color: var(--text-secondary); text-wrap: balance; }
+.tagl { position: absolute; cursor: pointer; white-space: nowrap; transform: translate(0, -50%) scale(var(--ui, 1)); transform-origin: left center; transition: opacity .25s ease; }
+.tagl .n { font: var(--type-label-sm); letter-spacing: var(--tracking-label-sm); color: var(--text-muted); margin-right: var(--space-8); }
+.tagl .name { font: var(--type-title-sm); }
+.tagl .what { display: none; font: var(--type-body-sm); color: var(--text-secondary); max-width: 360px; white-space: normal; margin-top: var(--space-4); }
+.tagl.active .what { display: block; }
+.has-active .tagl:not(.active):not(.loop) { opacity: .4; }
+.tagl.loop { transform: translate(-50%, -50%) scale(var(--ui, 1)); transform-origin: center; font: var(--type-label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; color: var(--text-secondary);
+  background: var(--background-base); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: var(--space-4) var(--space-12); pointer-events: none; }
+.ctl { background: var(--background-base); }
+.ctl label { font: var(--type-label-xs); letter-spacing: var(--tracking-label-xs); text-transform: uppercase; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-8); }
+.ctl input[type=range] { accent-color: var(--text-primary); width: 140px; }
+.ctl a[aria-current], .ctl button[aria-pressed="true"] { color: var(--background-base); background: var(--text-primary); border-color: var(--text-primary); }
+@media (max-aspect-ratio: 21/20) {
+  .hud.lead { width: auto; right: var(--space-40); top: 80px; } .hud.lead p, .hud.note, .hud.top .sec, .hud.top .date { display: none; }
+  .tagl .name { font: var(--type-title-xs); } .tagl.active .what { display: none; } .tagl:not(.loop) { background: var(--background-base); padding: 0 var(--space-8); border-radius: var(--radius-sm); }
+  .ctl a { display: none; } .ctl input[type=range] { width: 96px; }
+}
+</style></head>
+<body data-theme="light">
+<div id="stage"><svg id="loop"><path/><polygon/></svg><div id="stack"></div><div id="tags"></div></div>
+<div class="hud top"><span style="display:flex;align-items:center;gap:var(--space-48)"><span class="nav-logo"><i data-logo="wordmark"></i></span><span class="sec">City World Model</span></span><span class="date">November 2026</span></div>
+<div class="hud lead"><h1>Six layers and one cycle</h1><p>A city model that learns every day what is broken in the city and notices on its own when it has been fixed.</p></div>
+<div class="hud note"><h3 id="nt"></h3><p id="np"></p></div>
+<nav class="ctl">
+  <a href="a-core-3d.html">A · Core 3D</a><a href="a-core.html">A · flat</a><a href="b-orbit.html">B · Orbit</a><a href="c-pothole.html">C · One pothole</a><a href="d-realism.html" aria-current="page">D · Realism</a>
+  <span class="gap"></span><button data-play aria-pressed="false">Play</button>
+  <label>Air <input id="air" type="range" min="0.12" max="0.46" step="0.01" value="0.25"></label>
+</nav>
+<script src="axion/axion-logo.js"></script>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const { layers, loop, h } = CWM;
+  const files = ['01_capture', '02_quality-gate', '03_detection', '04_asset-registry', '05_case', '06_digital-twin'];
+  const stage = document.getElementById('stage'), stack = document.getElementById('stack'), tags = document.getElementById('tags');
+  const imgs = files.map(function (f, i) { const im = new Image(); im.src = 'realism/' + f + '.png'; im.alt = layers[i].name; im.style.zIndex = i + 1; stack.appendChild(im); return im; });
+  const labels = layers.map(function (L, i) {
+    const d = h('div', 'tagl', '<span class="n">' + L.n + '</span><span class="name">' + L.name + '</span><div class="what">' + L.what + '</div>', tags);
+    d.addEventListener('mouseenter', function () { focus(i); }); d.addEventListener('mouseleave', function () { focus(null); }); d.addEventListener('click', function () { pick(i); });
+    return d;
+  });
+  const loopTag = h('div', 'tagl loop', loop.tag, tags), path = document.querySelector('#loop path'), head = document.querySelector('#loop polygon');
+  document.getElementById('nt').textContent = loop.title; document.getElementById('np').textContent = loop.text;
+  const air = document.getElementById('air');
+  let geo = null, active = null, pinned = null, par = [0, 0];
+
+  /* the renders are square with the slab across the lower half; `air` is the step between layers as a share of the side */
+  function layout() {
+    const W = stage.clientWidth, H = stage.clientHeight, wide = W / H > 1.05, a = Number(air.value);
+    document.documentElement.style.setProperty('--ui', Math.max(0.5, Math.min(1, W / 1280, H / 700)).toFixed(3));
+    const S = Math.min((H - (wide ? 60 : 150)) / (1 + 5 * a), wide ? W * 0.4 : W * 0.96), step = S * a, total = S + 5 * step;
+    const cx = W / 2, top = (H - total) / 2 + (wide ? 10 : 50);
+    geo = { S: S, step: step, cx: cx, top: top, wide: wide };
+    imgs.forEach(function (im, i) { im.style.width = im.style.height = S + 'px'; im.style.left = (cx - S / 2) + 'px'; im.style.top = (top + (5 - i) * step) + 'px'; });
+    labels.forEach(function (el, i) { const y = top + (5 - i) * step + S * 0.6;
+      el.style.left = (wide ? cx + S * 0.5 + 8 : Math.max(8, cx - S * 0.48)) + 'px'; el.style.top = (wide ? y : y - S * 0.2) + 'px'; });
+    const x0 = cx - S * 0.47, y0 = top + S * 0.6, y1 = top + 5 * step + S * 0.62, xl = x0 - Math.min(90, S * 0.16), r = 26;
+    path.setAttribute('d', 'M' + x0 + ' ' + y0 + ' L' + (xl + r) + ' ' + y0 + ' Q' + xl + ' ' + y0 + ' ' + xl + ' ' + (y0 + r) + ' L' + xl + ' ' + (y1 - r) + ' Q' + xl + ' ' + y1 + ' ' + (xl + r) + ' ' + y1 + ' L' + (x0 - 10) + ' ' + y1);
+    head.setAttribute('points', (x0 - 10) + ',' + (y1 - 6) + ' ' + x0 + ',' + y1 + ' ' + (x0 - 10) + ',' + (y1 + 6));
+    loopTag.style.left = xl + 'px'; loopTag.style.top = ((y0 + y1) / 2) + 'px';
+    pose();
+  }
+  /* a little parallax with the pointer, and the active layer lifts */
+  function pose() { imgs.forEach(function (im, i) { const d = i - 2.5; im.style.transform = 'translate(' + (par[0] * d * 5).toFixed(1) + 'px,' + (par[1] * d * 4 - (i === active ? geo.S * 0.05 : 0)).toFixed(1) + 'px)'; }); }
+  function setActive(i) { active = i; stage.classList.toggle('has-active', i != null); imgs.forEach(function (im, k) { im.classList.toggle('active', k === i); }); labels.forEach(function (el, k) { el.classList.toggle('active', k === i); }); pose(); }
+  function focus(i) { if (!play.on()) setActive(i != null ? i : pinned); }
+  function pick(i) { play.stop(); pinned = pinned === i ? null : i; setActive(pinned); }
+  /* which layer is under the pointer: the slab whose band the pointer is in, nearest by height */
+  function under(e) { const r = stage.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top; if (Math.abs(x - geo.cx) > geo.S * 0.5) return null;
+    let best = null, bd = geo.S * 0.2; imgs.forEach(function (_, i) { const d = Math.abs(y - (geo.top + (5 - i) * geo.step + geo.S * 0.6)); if (d < bd) { bd = d; best = i; } }); return best; }
+  stage.addEventListener('mousemove', function (e) { const r = stage.getBoundingClientRect(); par = [(e.clientX - r.left) / r.width - 0.5, (e.clientY - r.top) / r.height - 0.5]; if (!play.on()) setActive((function (u) { return u != null ? u : pinned; })(under(e))); else pose(); });
+  stage.addEventListener('mouseleave', function () { par = [0, 0]; focus(null); });
+  stage.addEventListener('click', function (e) { const u = under(e); if (u != null) pick(u); });
+  const play = CWM.player(function (k) { if (k == null) { pinned = null; setActive(null); return; } setActive(k < 6 ? k : null); }, 1500);
+  air.addEventListener('input', layout); addEventListener('resize', layout);
+  layout(); document.documentElement.dataset.ready = '1';
+})();
+</script>
+</body></html>
