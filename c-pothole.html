@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="axion-level" content="25">
+<title>City World Model · C · One pothole</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.panel { position: absolute; width: 442px; height: 340px; background: var(--surface-muted); border: 1px solid transparent; border-radius: var(--radius-md);
+  padding: var(--space-24); display: flex; flex-direction: column; cursor: pointer; transition: opacity .25s ease, border-color .25s ease; }
+.panel.cycle { background: none; border: 1px dashed var(--border-strong); }
+.panel .head { display: flex; align-items: baseline; gap: var(--space-12); }
+.panel .n { font: var(--type-label-sm); letter-spacing: var(--tracking-label-sm); color: var(--text-muted); text-transform: uppercase; }
+.panel .name { font: var(--type-title-sm); }
+.panel svg { flex: 1; width: 100%; min-height: 0; margin: var(--space-12) 0; overflow: visible; }
+.panel p { margin: 0; font: var(--type-body-sm); color: var(--text-secondary); height: var(--space-48); text-wrap: balance; }
+.panel svg text { font: var(--type-label-sm); letter-spacing: var(--tracking-label-sm); text-transform: uppercase; fill: var(--text-secondary); }
+.panel svg text.on-lime { fill: var(--brand-on-fill); }
+.panel svg text.lime { fill: var(--text-brand); }
+.has-active .panel:not(.active) { opacity: .4; }
+.panel.active { border-color: var(--text-primary); border-style: solid; }
+.centre { position: absolute; left: 466px; top: 364px; width: 908px; height: 224px; display: flex; flex-direction: column; justify-content: center; }
+.centre h2 { margin: 0 0 var(--space-16); text-wrap: balance; }
+.centre p { margin: 0; font: var(--type-body-md); color: var(--text-secondary); text-wrap: balance; }
+.top { fill: var(--color-gray-950); stroke: var(--border-strong); stroke-width: 1; }
+.rule { stroke: var(--border-default); stroke-width: 1; }
+.back { stroke-dasharray: 6 6; stroke-width: 2; animation: run 1.2s linear infinite; }
+html.still .back { animation: none; }
+@keyframes run { to { stroke-dashoffset: -12; } }
+</style></head>
+<body data-theme="dark">
+<div class="viewport"><div class="fitbox">
+<section class="slide" data-theme="dark" data-family="steps">
+  <div class="decor"></div>
+  <header class="nav"><div class="nav-lead"><span class="nav-logo"><i data-logo="wordmark"></i></span><span class="nav-section">City World Model</span></div>
+    <span class="nav-mark"><i data-logo="glyph"></i></span><span class="nav-date">November 2026</span></header>
+  <div class="safe tight"><div class="stage" id="stage">
+    <svg id="art" viewBox="0 0 1840 952" aria-hidden="true"></svg>
+    <div class="centre">
+      <h2 class="t-heading-sm">One pothole, from the first frame to the closed case</h2>
+      <p>Film the city, sift out the rest, find violations, enter them in the registry, build a case, see the city on the twin, then again.</p>
+    </div>
+  </div></div>
+</section>
+</div></div>
+<nav class="ctl">
+  <a href="a-core-3d.html">A · Core 3D</a><a href="a-core.html">A · flat</a><a href="b-orbit.html">B · Orbit</a><a href="c-pothole.html" aria-current="page">C · One pothole</a>
+  <span class="gap"></span><button data-play aria-pressed="false">Play</button>
+</nav>
+<script src="axion/axion-logo.js"></script>
+<script src="shared.js"></script>
+<script src="towers.js"></script>
+<script>
+(function () {
+  const { layers, loop, s, h } = CWM;
+  const stage = document.getElementById('stage'), art = document.getElementById('art');
+  const X = [0, 466, 932, 1398], TOP = 0, BOT = 612, PW = 442, PH = 340, VW = 394, VH = 188;
+
+  const street = CWM.street;
+  function chip(g, x, y, label, cls) {
+    const w = label.length * 9.9 + 20;
+    s('rect', { class: cls === 'lime' ? 'p-fill' : 'chip', x: x, y: y, width: w, height: 24, rx: 4 }, g);
+    s('text', { class: cls === 'lime' ? 'on-lime' : '', x: x + w / 2, y: y + 17, 'text-anchor': 'middle' }, g).textContent = label;
+    return w;
+  }
+  function tick(g, x, y) { s('polyline', { class: 'find', points: (x - 6) + ',' + y + ' ' + (x - 1.5) + ',' + (y + 5) + ' ' + (x + 7) + ',' + (y - 6) }, g); }
+  function caseCard(g, x, y, closed) {
+    s('rect', { class: closed ? 'card' : 'card p', x: x, y: y, width: 170, height: 150, rx: 6 }, g);
+    street(g, x + 12, y + 12, 64, 46, closed ? { patch: 1 } : { hole: 1 }); street(g, x + 94, y + 12, 64, 46, closed ? { patch: 1 } : { hole: 1 });
+    for (let k = 0; k < 3; k++) s('line', { class: 'card-ink', x1: x + 12, y1: y + 80 + k * 22, x2: x + 150 - k * 30, y2: y + 80 + k * 22 }, g);
+  }
+
+  const draw = [
+    /* 01 Capture: one pass down a street is a stream of frames */
+    function (g) {
+      s('path', { class: 'route', d: 'M0 150 C90 120 150 176 230 140 S340 150 394 118' }, g);
+      [[4, 62, -7, {}], [84, 80, 5, { bad: 'black' }], [164, 58, -3, { bad: 'blur' }], [244, 72, 6, { hole: 1, lime: 1 }], [324, 50, -5, { bad: 'sky' }]].forEach(function (q) {
+        const f = s('g', { transform: 'rotate(' + q[2] + ' ' + (q[0] + 33) + ' ' + (q[1] + 23) + ')' }, g); street(f, q[0], q[1], 66, 46, q[3]);
+      });
+      s('circle', { class: 'car', cx: 0, cy: 150, r: 5 }, g);
+    },
+    /* 02 Quality gate: black, blurred and sky frames stay below the line */
+    function (g) {
+      s('line', { class: 'rule', x1: 0, y1: 101, x2: VW, y2: 101, 'stroke-dasharray': '4 4' }, g);
+      [[4, 22, {}], [84, 134, { bad: 'black' }], [164, 134, { bad: 'blur' }], [244, 22, { hole: 1, lime: 1 }], [324, 134, { bad: 'sky' }]].forEach(function (q) {
+        street(g, q[0], q[1], 66, 46, q[2]);
+        if (q[2].bad) { s('line', { class: 'mark', x1: q[0] + 33, y1: 50, x2: q[0] + 33, y2: 128, 'stroke-dasharray': '1 5' }, g); s('rect', { class: 'mesh', x: q[0], y: 22, width: 66, height: 46, 'stroke-dasharray': '3 3' }, g); }
+      });
+      s('text', { x: VW, y: 120, 'text-anchor': 'end' }, g).textContent = 'Sifted out';
+    },
+    /* 03 Detection: the pothole and a damaged lamp post are boxed on the frame */
+    function (g) {
+      const p = street(g, 62, 4, 270, 180, { hole: 1, lamp: 1 });
+      s('rect', { class: 'find p', x: p[0] - 34, y: p[1] - 20, width: 68, height: 40 }, g);
+      chip(g, p[0] - 34, p[1] - 46, 'Pothole', 'lime');
+      s('rect', { class: 'find', x: 62 + 270 * 0.86, y: 30, width: 34, height: 118 }, g);
+    },
+    /* 04 Asset registry: one record per asset, a row per category */
+    function (g) {
+      [['Fence', 9], ['Lamp post', 13], ['Advertising', 6], ['Graffiti', 11], ['Pothole', 8]].forEach(function (q, k) {
+        const y = 6 + k * 37;
+        s('text', { x: 0, y: y + 20 }, g).textContent = q[0];
+        for (let m = 0; m < q[1]; m++) s('rect', { class: k === 4 && m === q[1] - 1 ? 'p-fill' : 'rec', x: 150 + m * 18, y: y + 8, width: 13, height: 13 }, g);
+        if (k < 4) s('line', { class: 'rule', x1: 0, y1: y + 33, x2: VW, y2: y + 33 }, g);
+      });
+    },
+    /* 05 Case: what, where, since which day, photos as evidence */
+    function (g) { caseCard(g, 60, 18, false); chip(g, 250, 18, 'Open', 'lime'); s('line', { class: 'lime-line', x1: 230, y1: 30, x2: 250, y2: 30 }, g); },
+    /* 06 Digital twin: the case is a pin on the whole city, with widgets on its state */
+    function (g) {
+      const T = window.CWM_TOWERS || {}, cxp = 197, cyp = 146, W = 300, H = 90, k = 0.66;
+      const pr = function (x, y) { return [cxp + ((x - y) / 100) * W / 2, cyp - H / 2 + ((x + y) / 100) * H / 2]; };
+      s('polygon', { class: 'top', points: [pr(0, 0), pr(100, 0), pr(100, 100), pr(0, 100)].map(function (p) { return p.join(','); }).join(' ') }, g);
+      [[36, 0, 36, 100], [70, 0, 70, 100], [0, 36, 100, 36], [0, 70, 100, 70]].forEach(function (q) { const a = pr(q[0], q[1]), b = pr(q[2], q[3]); s('line', { class: 'rule', x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, g); });
+      const items = [['faisaliah', 18, 54], ['kingdom', 53, 53], ['majdoul', 53, 16], ['pif', 86, 20], ['slab-b', 86, 54]].map(function (q) { return { k: q[1] + q[2], tower: q }; })
+        .concat([[36, 86], [70, 30], [88, 70]].map(function (q) { return { k: q[0] + q[1], pin: q }; }), [{ k: 140, pin: [70, 70], lime: 1 }]);
+      items.sort(function (a, b) { return a.k - b.k; }).forEach(function (it) {
+        if (it.tower) { const o = T[it.tower[0]]; if (!o) return; const c = pr(it.tower[1], it.tower[2]);
+          s('g', { class: 'tower', transform: 'translate(' + (c[0] - o.ax * k).toFixed(1) + ' ' + (c[1] - o.ay * k).toFixed(1) + ') scale(' + k + ')' }, g).innerHTML = o.svg; return; }
+        const c = pr(it.pin[0], it.pin[1]), up = it.lime ? 24 : 16;
+        s('line', { class: it.lime ? 'pin p' : 'pin', x1: c[0], y1: c[1], x2: c[0], y2: c[1] - up }, g);
+        s('circle', { class: it.lime ? 'p-fill' : 'pin-dot', cx: c[0], cy: c[1] - up, r: it.lime ? 5 : 3.5 }, g);
+        if (it.lime) s('circle', { class: 'pin p', cx: c[0], cy: c[1] - up, r: 10 }, g);
+      });
+    },
+    /* the cycle, part one: the road is patched */
+    function (g) { street(g, 62, 4, 270, 180, { patch: 1 }); },
+    /* the cycle, part two: the next pass sees the patch and the case closes */
+    function (g) {
+      [[0, 8, {}], [0, 71, { patch: 1, sel: 1 }], [0, 134, {}]].forEach(function (q) { street(g, q[0], q[1], 66, 46, q[2]); });
+      s('line', { class: 'edge', x1: 78, y1: 94, x2: 124, y2: 94, 'marker-end': 'url(#ah)' }, g);
+      caseCard(g, 136, 18, true); const w = chip(g, 320, 18, 'Closed'); tick(g, 320 + w / 2, 62);
+    },
+  ];
+  const meta = layers.map(function (L) { return { n: L.n, name: L.name, text: L.what }; }).concat([
+    { n: loop.tag, name: 'The pothole is patched', text: 'The city changes every day, so the model is never finished.', cycle: 1 },
+    { n: loop.tag, name: 'The next pass sees it', text: 'The road is whole again in the new frames, and the case closes.', cycle: 1 },
+  ]);
+  meta[2].text = 'Violations are found in the frames: a pothole, a damaged lamp post.';
+  const place = [[0, TOP], [1, TOP], [2, TOP], [3, TOP], [3, BOT], [2, BOT], [1, BOT], [0, BOT]];
+
+  const panels = meta.map(function (m, i) {
+    const p = h('div', 'panel' + (m.cycle ? ' cycle' : ''), '<div class="head"><span class="n">' + m.n + '</span><span class="name">' + m.name + '</span></div><svg viewBox="0 0 ' + VW + ' ' + VH + '"></svg><p>' + m.text + '</p>', stage);
+    p.style.left = X[place[i][0]] + 'px'; p.style.top = place[i][1] + 'px';
+    draw[i](s('g', {}, p.querySelector('svg')));
+    return p;
+  });
+
+  /* the circuit: right along the top, down, left along the bottom, and back up to Capture */
+  const defs = s('defs', {}, art);
+  const mk = s('marker', { id: 'ah', markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: 'auto', markerUnits: 'userSpaceOnUse' }, defs);
+  s('polygon', { points: '0 0, 10 4, 0 8', class: 'edge-head' }, mk);
+  [454, 920, 1386].forEach(function (x) {
+    s('polygon', { class: 'edge-head', points: (x - 5) + ',' + (TOP + PH / 2 - 7) + ' ' + (x + 6) + ',' + (TOP + PH / 2) + ' ' + (x - 5) + ',' + (TOP + PH / 2 + 7) }, art);
+    s('polygon', { class: 'edge-head', points: (x + 5) + ',' + (BOT + PH / 2 - 7) + ' ' + (x - 6) + ',' + (BOT + PH / 2) + ' ' + (x + 5) + ',' + (BOT + PH / 2 + 7) }, art);
+  });
+  s('line', { class: 'edge', x1: X[3] + PW / 2, y1: PH + 10, x2: X[3] + PW / 2, y2: BOT - 10, 'marker-end': 'url(#ah)' }, art);
+  s('line', { class: 'edge back', x1: PW / 2, y1: BOT - 10, x2: PW / 2, y2: PH + 10, 'marker-end': 'url(#ah)' }, art);
+  s('rect', { class: 'chip', x: PW / 2 - 72, y: (PH + BOT) / 2 - 16, width: 144, height: 32, rx: 4 }, art);
+  const t = s('text', { x: PW / 2, y: (PH + BOT) / 2 + 5, 'text-anchor': 'middle' }, art); t.textContent = loop.tag;
+
+  /* focus and play */
+  let pinned = null;
+  function setActive(i) { stage.classList.toggle('has-active', i != null); panels.forEach(function (el, k) { el.classList.toggle('active', k === i); }); }
+  panels.forEach(function (el, i) {
+    el.addEventListener('mouseenter', function () { if (!play.on()) setActive(i); });
+    el.addEventListener('mouseleave', function () { if (!play.on()) setActive(pinned); });
+    el.addEventListener('click', function () { play.stop(); pinned = pinned === i ? null : i; setActive(pinned); });
+  });
+  const STEP = 1700; let half = 0;
+  const play = CWM.player(function (k) {
+    clearTimeout(half);
+    if (k == null) { pinned = null; setActive(null); return; }
+    setActive(k);
+    if (k === 6) half = setTimeout(function () { setActive(7); }, STEP);
+  }, STEP);
+
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(CWM.ready);
+})();
+</script>
+</body></html>

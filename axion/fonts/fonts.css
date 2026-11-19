@@ -1,0 +1,5 @@
+:root, [data-theme] {
+  --family-display: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --family-text: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --family-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
