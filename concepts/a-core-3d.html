@@ -236,7 +236,7 @@ flow.forEach((f) => { f.col = new THREE.Color(f.c); f.col2 = f.c2 ? new THREE.Co
 const dotTex = canvasTex(32, 32, (x) => { x.fillStyle = C.white; x.beginPath(); x.arc(16, 16, 14, 0, 7); x.fill(); });
 const flowGeo = new THREE.BufferGeometry();
 flowGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(flow.length * 3), 3)); flowGeo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(flow.length * 3), 3));
-const flowPts = new THREE.Points(flowGeo, new THREE.PointsMaterial({ size: 5 * renderer.getPixelRatio(), sizeAttenuation: false, map: dotTex, alphaTest: 0.4, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+const flowPts = new THREE.Points(flowGeo, new THREE.PointsMaterial({ size: 5, sizeAttenuation: false,   /* css px: three.js applies the pixel ratio itself */ map: dotTex, alphaTest: 0.4, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
 flowPts.frustumCulled = false; scene.add(flowPts);
 function launch(f) {   // a new particle leaves the head of a comet
   const c = comets[Math.floor(fr() * comets.length)]; f.path[0].p.copy(c.head.position);
@@ -272,7 +272,8 @@ const isWide = () => host.clientWidth / host.clientHeight > 1.05;   // landscape
 function frameView(reset) {
   const w = host.clientWidth, h = host.clientHeight, wide = isWide(), H = 5 * gap + (wide ? 9.5 : 16), span = Math.max(H, (SIZE[5] * 1.55 + (wide ? 9 : 0)) * (h / w));
   renderer.setSize(w, h, false);
-  document.documentElement.style.setProperty('--ui', Math.max(0.5, Math.min(1, w / 1280, h / 700)).toFixed(3));
+  const ui = Math.max(0.5, Math.min(1, w / 1280, h / 700)); document.documentElement.style.setProperty('--ui', ui.toFixed(3));
+  if (typeof flowPts !== 'undefined') flowPts.material.size = Math.max(2.5, 5 * ui);   // particles shrink with a small window
   camera.top = span / 2; camera.bottom = -span / 2; camera.right = (span / 2) * (w / h); camera.left = -camera.right;
   const cy = (5 * gap) / 2 + 1.5;
   if (reset) { controls.target.set(0, cy, 0); camera.position.set(40, cy + 56.57 * 0.42, 40); camera.zoom = 1; } else controls.target.y = cy;
