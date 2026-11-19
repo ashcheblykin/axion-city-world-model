@@ -1,0 +1,22 @@
+{
+  "name": "kingdom",
+  "sizeM": [
+    177.9,
+    158.1,
+    301
+  ],
+  "triangles": 1492,
+  "model": {
+    "src": "kingdom.glb",
+    "heading": 0,
+    "materials": {
+      "Opening": "inkOpening",
+      "Deep": "inkDeep"
+    },
+    "detail": [
+      "Opening",
+      "Deep",
+      "Trim"
+    ]
+  }
+}

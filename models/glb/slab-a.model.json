@@ -1,0 +1,22 @@
+{
+  "name": "slab-a",
+  "sizeM": [
+    85.8,
+    94.5,
+    150
+  ],
+  "triangles": 272,
+  "model": {
+    "src": "slab-a.glb",
+    "heading": 0,
+    "materials": {
+      "Opening": "inkOpening",
+      "Deep": "inkDeep"
+    },
+    "detail": [
+      "Opening",
+      "Deep",
+      "Trim"
+    ]
+  }
+}

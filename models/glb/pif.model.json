@@ -1,0 +1,22 @@
+{
+  "name": "pif",
+  "sizeM": [
+    141,
+    141,
+    385
+  ],
+  "triangles": 44,
+  "model": {
+    "src": "pif.glb",
+    "heading": 0,
+    "materials": {
+      "Opening": "inkOpening",
+      "Deep": "inkDeep"
+    },
+    "detail": [
+      "Opening",
+      "Deep",
+      "Trim"
+    ]
+  }
+}

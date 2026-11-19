@@ -1,0 +1,215 @@
+<!doctype html>
+<!-- Concept B · Orbit. The same stack seen from above: six rings, Capture in the centre, the city outside.
+     The angle is a place along the pass, so one thing stays on one radius while it moves outward:
+     frame, slot in the sieve, finding, record on its category track, case, pin on the twin.
+     The hand is the pass. Each turn of the hand rebuilds every ring. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="axion-level" content="25">
+<title>City World Model · B · Orbit</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.lead { position: absolute; left: 0; top: 0; width: 420px; }
+.lead h2 { margin: 0 0 var(--space-24); text-wrap: balance; }
+.lead p { margin: 0; font: var(--type-body-md); color: var(--text-secondary); text-wrap: balance; }
+.loop-note { position: absolute; left: 0; bottom: 0; width: 400px; }
+.loop-note p { text-wrap: balance; }
+#rows { left: 1243px; top: 0; width: 597px; height: 100%; }
+.legend { left: 1243px; top: 924px; }
+.legend .d2 { display: none; }
+.day2 ~ .legend .d1 { display: none; } .day2 ~ .legend .d2 { display: inline; }
+
+.ring { cursor: pointer; transition: opacity .25s ease; }
+.has-active .ring:not(.active) { opacity: .35; }
+.band { fill: var(--color-gray-950); stroke: var(--border-strong); stroke-width: 1; }
+.ring.active .band { stroke: var(--text-primary); }
+.track { fill: none; stroke: var(--border-default); stroke-width: 1; }
+.case-arc { fill: none; stroke: var(--alpha-white-55); stroke-width: 2; }
+.lot { fill: var(--color-gray-800); stroke: var(--alpha-white-25); stroke-width: 1; }
+.lot.low { fill: var(--color-gray-900); }
+.badge { fill: var(--color-black); stroke: var(--border-strong); stroke-width: 1; }
+.stage text.badge-n { fill: var(--text-primary); }
+.hand, .thread, .badge-g { pointer-events: none; }
+.hand line { stroke: var(--text-primary); stroke-width: 1.5; }
+.hand path { fill: var(--text-primary); }
+.hand circle { fill: var(--text-primary); }
+.turn { stroke-width: 2; stroke-dasharray: 6 6; animation: run 1.2s linear infinite; }
+html.still .turn { animation: none; }
+@keyframes run { to { stroke-dashoffset: -12; } }
+</style></head>
+<body data-theme="dark">
+<div class="viewport"><div class="fitbox">
+<section class="slide" data-theme="dark" data-family="diagram">
+  <div class="decor"></div>
+  <header class="nav"><div class="nav-lead"><span class="nav-logo"><i data-logo="wordmark"></i></span><span class="nav-section">City World Model</span></div>
+    <span class="nav-mark"><i data-logo="glyph"></i></span><span class="nav-date">November 2026</span></header>
+  <div class="safe tight"><div class="stage" id="stage">
+    <svg id="art" viewBox="0 0 1840 952" role="img" aria-labelledby="art-t art-d">
+      <title id="art-t">City World Model as six rings and a turning hand</title>
+      <desc id="art-d">Each pass turns once around the city. Along one radius a frame becomes a finding, a record, a case and a pin on the twin. The next turn checks it again.</desc>
+    </svg>
+    <div class="lead">
+      <h2 class="t-heading-md">Rebuilt every day</h2>
+      <p>A city model that learns every day what is broken in the city and notices on its own when it has been fixed.</p>
+    </div>
+    <div class="loop-note" id="loopnote"></div>
+    <div class="rows" id="rows"></div>
+    <div class="legend"><i></i><span class="d1">One pothole, on one radius through every ring</span><span class="d2">Next pass: the pothole is patched, the case is closed</span></div>
+  </div></div>
+</section>
+</div></div>
+<nav class="ctl">
+  <a href="a-core-3d.html">A · Core 3D</a><a href="a-core.html">A · flat</a><a href="b-orbit.html" aria-current="page">B · Orbit</a><a href="c-pothole.html">C · One pothole</a>
+  <span class="gap"></span><button id="play" aria-pressed="false">Play</button>
+</nav>
+<script src="axion/axion-logo.js"></script>
+<script src="axion/axion-even.js"></script>
+<script src="shared.js"></script>
+<script>
+(function () {
+  const { layers, loop, s, rng } = CWM;
+  const art = document.getElementById('art'), stage = document.getElementById('stage');
+  const rnd = rng(23);
+  const cx = 830, cy = 492, N = 24, kP = 21;
+  const edge = [0, 84, 140, 200, 250, 300, 360];                  // ring borders, centre outward
+  const rad = function (d) { return d * Math.PI / 180; };
+  const pol = function (r, d) { return [cx + r * Math.cos(rad(d)), cy + r * Math.sin(rad(d))]; };
+  const ang = function (k) { return k * 360 / N; };
+  const at = function (r, d, rot) { const p = pol(r, d); return 'translate(' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ') rotate(' + (d + 90 + (rot || 0)).toFixed(1) + ')'; };
+  const box = function (parent, cls, r, d, w, hh, rot) { return s('rect', { class: cls, x: -w / 2, y: -hh / 2, width: w, height: hh, transform: at(r, d, rot) }, parent); };
+  const arc = function (r, a, b) { const p = pol(r, a), q = pol(r, b); return 'M' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ' A' + r + ' ' + r + ' 0 ' + ((b - a) > 180 ? 1 : 0) + ' 1 ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); };
+
+  /* what happens at each place along the pass. Slot 0 is kept clear for the ring numbers */
+  const rejected = { 4: 0, 7: 1, 11: 2, 15: 0, 19: 1 };       // black, blurred, sky
+  const found = { 1: 0, 2: 0, 6: 3, 9: 1, 10: 1, 13: 2, 14: 2, 17: 4, 21: 4, 23: 1 }; // slot → category track
+  const cases = [[1, 2], [9, 10], [13, 14], [17, 17], [21, 21]];
+
+  const defs = s('defs', {}, art);
+  const mk = s('marker', { id: 'ah', markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: 'auto', markerUnits: 'userSpaceOnUse' }, defs);
+  s('polygon', { points: '0 0, 10 4, 0 8', class: 'edge-head' }, mk);
+
+  /* rings go in from the outside so each smaller one sits on top, like slabs seen from above */
+  const rings = [];
+  for (let i = 5; i >= 0; i--) {
+    const g = s('g', { class: 'ring', 'data-i': i }, art);
+    s('circle', { class: 'band', cx: cx, cy: cy, r: edge[i + 1] }, g);
+    rings[i] = g;
+  }
+  const mid = function (i) { return (edge[i] + edge[i + 1]) / 2; };
+  const mark = function (parent, kind, r, d) {
+    if (kind === 1) for (let m = -1; m <= 1; m++) s('line', { class: 'mark', x1: -3.5, y1: m * 2, x2: 3.5, y2: m * 2, transform: at(r, d) }, parent);
+    if (kind === 2) s('circle', { class: 'mark', cx: 1.5, cy: -1, r: 1.6, transform: at(r, d) }, parent);
+  };
+
+  for (let k = 1; k < N; k++) {
+    const a = ang(k), bad = k in rejected, hit = k in found, isP = k === kP;
+    /* 01 Capture: raw frames, scattered */
+    const r1 = isP ? 52 : 22 + rnd() * 44, a1 = isP ? a : a + (rnd() - 0.5) * 12;
+    box(rings[0], isP ? 'fr p' : bad ? 'fr bad' : 'fr', r1, a1, 14, 10, isP ? 0 : (rnd() - 0.5) * 70);
+    /* 02 Quality gate: every frame gets a slot in the sieve, rejected slots stay empty */
+    s('line', { class: 'track', x1: pol(edge[1] + 6, a - 7.5)[0], y1: pol(edge[1] + 6, a - 7.5)[1], x2: pol(edge[2] - 6, a - 7.5)[0], y2: pol(edge[2] - 6, a - 7.5)[1] }, rings[1]);
+    if (bad) { box(rings[1], 'hole', mid(1), a, 18, 13); mark(rings[1], rejected[k], mid(1), a); continue; }
+    box(rings[1], isP ? 'fr p' : 'fr', mid(1), a, 16, 11);
+    /* 03 Detection: on some of the frames a finding is boxed */
+    box(rings[2], hit ? 'fr' : 'fr plain', mid(2), a, 26, 19);
+    if (!hit) continue;
+    box(rings[2], isP ? 'find p' : 'find', mid(2), a, 11, 9);
+    if (isP) box(rings[2], 'find closed-only', mid(2), a, 11, 9).setAttribute('stroke-dasharray', '2 3');
+    /* 04 Asset registry: one record, on the track of its category */
+    box(rings[3], isP ? 'p-fill' : 'rec', edge[3] + 9 + found[k] * 8, a, 11, 7);
+  }
+  s('line', { class: 'track', x1: pol(edge[1] + 6, 352.5)[0], y1: pol(edge[1] + 6, 352.5)[1], x2: pol(edge[2] - 6, 352.5)[0], y2: pol(edge[2] - 6, 352.5)[1] }, rings[1]);
+  for (let t = 0; t < 5; t++) s('circle', { class: 'track', cx: cx, cy: cy, r: edge[3] + 9 + t * 8 }, rings[3]).parentNode.insertBefore(rings[3].lastChild, rings[3].children[1]);
+
+  /* 05 Case: neighbouring records are gathered into one story */
+  cases.forEach(function (c) {
+    const a0 = ang(c[0]), a1 = ang(c[1]), am = (a0 + a1) / 2, isP = c[0] === kP;
+    s('path', { class: isP ? 'case-arc p' : 'case-arc', d: arc(edge[4] + 6, a0 - 5, a1 + 5) }, rings[4]);
+    const card = s('g', { transform: at(edge[4] + 28, am) }, rings[4]);
+    s('rect', { class: isP ? 'card p' : 'card', x: -12, y: -15, width: 24, height: 30, rx: 2 }, card);
+    s('line', { class: 'card-ink', x1: -8, y1: 9, x2: 2, y2: 9 }, card);
+    s('rect', { class: 'thumb', x: -8, y: -3, width: 7, height: 6 }, card); s('rect', { class: 'thumb', x: 1, y: -3, width: 7, height: 6 }, card);
+    s('line', { class: 'mark', x1: -8, y1: -8, x2: 8, y2: -8 }, card);
+    if (isP) { s('circle', { class: 'p-fill open-only', cx: 7, cy: 9, r: 2.2 }, card); s('polyline', { class: 'find closed-only', points: '4.5,9 6.5,11 9.5,6.5' }, card); }
+    else s('circle', { class: 'rec', cx: 7, cy: 9, r: 2.2 }, card);
+    /* 06 Digital twin: the case is a pin on the city */
+    const p = pol(edge[5] + 30, am);
+    if (isP) {
+      const open = s('g', { class: 'open-only' }, rings[5]);
+      s('circle', { class: 'p-fill', cx: p[0], cy: p[1], r: 6 }, open); s('circle', { class: 'pin p', cx: p[0], cy: p[1], r: 11 }, open);
+      s('circle', { class: 'pin closed-only', cx: p[0], cy: p[1], r: 7, 'stroke-dasharray': '2 3' }, rings[5]);
+    } else { s('circle', { class: 'pin-dot', cx: p[0], cy: p[1], r: 4.5 }, rings[5]); s('circle', { class: 'pin', cx: p[0], cy: p[1], r: 9 }, rings[5]); }
+  });
+  /* the city: two rows of lots around a ring road */
+  for (let k = 0; k < 72; k++) [[edge[5] + 12, 16], [edge[5] + 48, 18]].forEach(function (row, j) {
+    if (rnd() < 0.2) return;
+    const a = (k + 0.5) * 5, w = (row[0] * Math.PI / 36) - 5;
+    rings[5].insertBefore(box(rings[5], rnd() < 0.5 ? 'lot' : 'lot low', row[0], a, w, row[1] * (0.7 + rnd() * 0.3)), rings[5].children[1]);
+  });
+  /* the pothole radius */
+  const aP = ang(kP), p0 = pol(52, aP), p1 = pol(edge[5] + 30, aP);
+  s('path', { class: 'thread', d: 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' L' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) }, art);
+
+  /* the hand is the pass: a line with a fading trail of freshly read places behind it */
+  const hand = s('g', { class: 'hand' }, art);
+  for (let m = 0; m < 14; m++) { const a0 = -(m + 1) * 5, a1 = -m * 5, p = pol(edge[6], a0), q = pol(edge[6], a1);
+    s('path', { d: 'M' + cx + ' ' + cy + ' L' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ' A' + edge[6] + ' ' + edge[6] + ' 0 0 1 ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1) + ' Z', 'fill-opacity': (0.11 * (1 - m / 14)).toFixed(3) }, hand); }
+  s('line', { x1: cx, y1: cy, x2: cx + edge[6] + 14, y2: cy }, hand);
+  s('circle', { cx: cx + edge[6] + 14, cy: cy, r: 5 }, hand);
+  let theta = aP + 16;
+  const turnHand = function () { hand.setAttribute('transform', 'rotate(' + theta.toFixed(2) + ' ' + cx + ' ' + cy + ')'); };
+  turnHand();
+
+  /* the direction of the turn, and its name */
+  s('path', { class: 'edge turn', 'marker-end': 'url(#ah)', d: arc(edge[6] + 26, 214, 322) }, art);
+  const tc = pol(edge[6] + 26, 270);
+  s('rect', { x: tc[0] - 72, y: tc[1] - 16, width: 144, height: 32, rx: 4, class: 'chip' }, art);
+  s('text', { x: tc[0], y: tc[1] + 5, 'text-anchor': 'middle' }, art).textContent = loop.tag;
+
+  /* ring numbers on the east radius */
+  layers.forEach(function (L, i) {
+    const x = cx + mid(i), g = s('g', {}, art);
+    s('circle', { class: 'badge', cx: x, cy: cy, r: 15 }, g);
+    s('text', { class: 'badge-n', x: x, y: cy + 5, 'text-anchor': 'middle' }, g).textContent = L.n;
+  });
+
+  /* copy */
+  const note = document.getElementById('loopnote');
+  note.innerHTML = '<h3>' + loop.title + '</h3><p>' + loop.text + '</p>';
+  let pinned = null;
+  function setActive(i) {
+    stage.classList.toggle('has-active', i != null);
+    rings.forEach(function (el, k) { el.classList.toggle('active', k === i); });
+    rowEls.forEach(function (el, k) { el.classList.toggle('active', k === i); });
+  }
+  const handlers = { onFocus: function (i) { setActive(i != null ? i : pinned); }, onPick: function (i) { pinned = pinned === i ? null : i; setActive(pinned); } };
+  const rowEls = CWM.rows(document.getElementById('rows'), handlers);
+  rowEls.forEach(function (el, i) { el.style.top = (96 + i * 132) + 'px'; });
+  rings.forEach(function (el, i) {
+    el.addEventListener('mouseenter', function () { handlers.onFocus(i); });
+    el.addEventListener('mouseleave', function () { handlers.onFocus(null); });
+    el.addEventListener('click', function () { handlers.onPick(i); });
+  });
+
+  /* play: the hand turns, and every time it crosses the pothole radius the model there is read again */
+  const btn = document.getElementById('play'); let timer = 0, last = 0;   // a timer, not animation frames: the turn keeps going in a background tab
+  function frame() {
+    const now = performance.now();
+    const before = ((theta - aP) % 360 + 360) % 360;
+    theta += (now - last) * 360 / 9000; last = now;
+    const after = ((theta - aP) % 360 + 360) % 360;
+    if (after < before) art.classList.toggle('day2');
+    turnHand();
+  }
+  btn.addEventListener('click', function () {
+    const on = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    clearInterval(timer);
+    if (on) { last = performance.now(); timer = setInterval(frame, 33); }
+    else { theta = aP + 16; art.classList.remove('day2'); turnHand(); }
+  });
+
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(CWM.ready);
+})();
+</script>
+</body></html>

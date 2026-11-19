@@ -1,0 +1,22 @@
+{
+  "name": "faisaliah",
+  "sizeM": [
+    96,
+    96,
+    268
+  ],
+  "triangles": 488,
+  "model": {
+    "src": "faisaliah.glb",
+    "heading": 0,
+    "materials": {
+      "Opening": "inkOpening",
+      "Deep": "inkDeep"
+    },
+    "detail": [
+      "Opening",
+      "Deep",
+      "Trim"
+    ]
+  }
+}

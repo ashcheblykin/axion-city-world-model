@@ -1,0 +1,22 @@
+{
+  "name": "majdoul",
+  "sizeM": [
+    80,
+    80,
+    232
+  ],
+  "triangles": 236,
+  "model": {
+    "src": "majdoul.glb",
+    "heading": 0,
+    "materials": {
+      "Opening": "inkOpening",
+      "Deep": "inkDeep"
+    },
+    "detail": [
+      "Opening",
+      "Deep",
+      "Trim"
+    ]
+  }
+}

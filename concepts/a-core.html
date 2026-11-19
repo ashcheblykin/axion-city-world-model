@@ -1,0 +1,295 @@
+<!doctype html>
+<!-- Concept A · Core. A stack of six slabs, each one made of what the layer really holds:
+     scattered frames, a sieve with gaps, frames with findings, registry cells, case cards, the city.
+     One pothole is followed through every layer in lime; the loop on the left brings the next pass. -->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="axion-level" content="25">
+<title>City World Model · A · Core</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.lead { position: absolute; left: 0; top: 0; width: 420px; }
+.lead h2 { margin: 0 0 var(--space-24); text-wrap: balance; }
+.lead p { margin: 0; font: var(--type-body-md); color: var(--text-secondary); text-wrap: balance; }
+.loop-note p { text-wrap: balance; }
+.loop-note { position: absolute; left: 0; bottom: 0; width: 400px; }
+#rows { left: 1243px; top: 0; width: 597px; height: 100%; }
+#rows .n { display: none; }   /* the number already stands on the slab */
+.legend { left: 1243px; top: 924px; }
+.legend .d2 { display: none; }
+.day2 ~ .legend .d1 { display: none; } .day2 ~ .legend .d2 { display: inline; }
+
+.slab { cursor: pointer; transition: transform .35s cubic-bezier(.2,.7,.2,1), opacity .25s ease; }
+.slab.active { transform: translateY(-14px); }
+.has-active .slab:not(.active) { opacity: .4; }
+.top { fill: var(--color-gray-950); stroke: var(--border-strong); stroke-width: 1; }
+.side-l { fill: var(--color-gray-900); stroke: var(--border-strong); stroke-width: 1; }
+.side-r { fill: var(--color-black); stroke: var(--border-strong); stroke-width: 1; }
+.loop { stroke-width: 2; stroke-dasharray: 6 6; animation: run 1.2s linear infinite; }
+html.still .loop { animation: none; }
+@keyframes run { to { stroke-dashoffset: -12; } }
+</style></head>
+<body data-theme="dark">
+<div class="viewport"><div class="fitbox">
+<section class="slide" data-theme="dark" data-family="diagram">
+  <div class="decor"></div>
+  <header class="nav"><div class="nav-lead"><span class="nav-logo"><i data-logo="wordmark"></i></span><span class="nav-section">City World Model</span></div>
+    <span class="nav-mark"><i data-logo="glyph"></i></span><span class="nav-date">November 2026</span></header>
+  <div class="safe tight"><div class="stage" id="stage">
+    <svg id="art" viewBox="0 0 1840 952" role="img" aria-labelledby="art-t art-d">
+      <title id="art-t">City World Model as a stack of six layers</title>
+      <desc id="art-d">Frames are captured, sifted, searched for violations, entered in a registry, built into cases and shown on the city twin. The next pass starts the stack again.</desc>
+    </svg>
+    <div class="lead">
+      <h2 class="t-heading-md">Six layers and one cycle</h2>
+      <p>A city model that learns every day what is broken in the city and notices on its own when it has been fixed.</p>
+    </div>
+    <div class="loop-note" id="loopnote"></div>
+    <div class="rows" id="rows"></div>
+    <div class="legend"><i></i><span class="d1">One pothole, followed through every layer</span><span class="d2">Next pass: the pothole is patched, the case is closed</span></div>
+  </div></div>
+</section>
+</div></div>
+<nav class="ctl">
+  <a href="a-core-3d.html">A · Core 3D</a><a href="a-core.html" aria-current="page">A · flat</a><a href="b-orbit.html">B · Orbit</a><a href="c-pothole.html">C · One pothole</a>
+  <span class="gap"></span><button data-play aria-pressed="false">Play</button>
+</nav>
+<script src="axion/axion-logo.js"></script>
+<script src="axion/axion-even.js"></script>
+<script src="shared.js"></script>
+<script src="towers.js"></script>
+<script>
+(function () {
+  const { layers, loop, s, h, rng } = CWM;
+  const art = document.getElementById('art'), stage = document.getElementById('stage');
+  const rnd = rng(11);
+
+  /* geometry: six slabs, the base narrow and the top wide, as in the brief */
+  const cx = 870, ratio = 0.30, step = 132, topY = 190, thick = 14;
+  const G = layers.map(function (_, i) { const W = 500 + i * 36; return { i: i, W: W, H: W * ratio, cy: topY + (5 - i) * step }; });
+  const proj = function (g, x, y, lift) { return [cx + (x - y) / 100 * g.W / 2, g.cy - g.H / 2 + (x + y) / 100 * g.H / 2 - (lift || 0)]; };
+  const pts = function (a) { return a.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); };
+
+  /* the loop goes in first, under the slabs */
+  const defs = s('defs', {}, art);
+  const bg = s('linearGradient', { id: 'beam', x1: 0, y1: 1, x2: 0, y2: 0 }, defs);
+  s('stop', { offset: 0, class: 'beam-a' }, bg); s('stop', { offset: 1, class: 'beam-b' }, bg);
+  const mk = s('marker', { id: 'ah', markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: 'auto', markerUnits: 'userSpaceOnUse' }, defs);
+  s('polygon', { points: '0 0, 10 4, 0 8', class: 'edge-head' }, mk);
+  const x0 = cx - G[5].W / 2 - 10, y0 = G[5].cy, xl = 456, y1 = G[0].cy, x1 = cx - G[0].W / 2 - 14, R = 28;
+  const loopPath = s('path', { class: 'edge loop', 'marker-end': 'url(#ah)',
+    d: 'M' + x0 + ' ' + y0 + ' L' + (xl + R) + ' ' + y0 + ' Q' + xl + ' ' + y0 + ' ' + xl + ' ' + (y0 + R) + ' L' + xl + ' ' + (y1 - R) + ' Q' + xl + ' ' + y1 + ' ' + (xl + R) + ' ' + y1 + ' L' + x1 + ' ' + y1 }, art);
+  const lc = (y0 + y1) / 2;
+  [lc - 150, lc + 150].forEach(function (y) { s('polygon', { class: 'edge-head', points: (xl - 5) + ',' + (y - 6) + ' ' + xl + ',' + (y + 6) + ' ' + (xl + 5) + ',' + (y - 6) }, art); });
+  s('rect', { x: xl - 72, y: lc - 16, width: 144, height: 32, rx: 4, class: 'chip' }, art);
+  s('text', { x: xl, y: lc + 5, 'text-anchor': 'middle' }, art).textContent = loop.tag;
+
+  const slabs = [], P = [];
+  G.forEach(function (g) {
+    const T = proj(g, 0, 0), Rv = proj(g, 100, 0), B = proj(g, 100, 100), Lv = proj(g, 0, 100);
+    const dn = function (p) { return [p[0], p[1] + thick]; };
+    const slab = s('g', { class: 'slab', 'data-i': g.i }, art);
+    s('polygon', { class: 'side-l', points: pts([Lv, B, dn(B), dn(Lv)]) }, slab);
+    s('polygon', { class: 'side-r', points: pts([B, Rv, dn(Rv), dn(B)]) }, slab);
+    s('polygon', { class: 'top', points: pts([T, Rv, B, Lv]) }, slab);
+    const flat = function (dy) { return s('g', { transform: 'matrix(' + [g.W / 200, g.H / 200, -g.W / 200, g.H / 200, cx, g.cy - g.H / 2 + (dy || 0)].join(' ') + ')' }, slab); };
+    g.slab = slab; g.flat = flat; slabs.push(slab);
+    s('line', { class: 'hair', x1: Rv[0] + 34, y1: g.cy, x2: 1226, y2: g.cy }, art);
+    s('circle', { class: 'badge', cx: Rv[0] + 16, cy: g.cy, r: 13 }, art);
+    s('text', { class: 'badge-n', x: Rv[0] + 16, y: g.cy + 5, 'text-anchor': 'middle' }, art).textContent = layers[g.i].n;
+  });
+  /* A slab is a shelf. Things stand on it along its two front edges, the lime one at the tip:
+     back to front that is V[0], V[6], V[1], V[5], V[2], V[4], V[3]. */
+  const V = [[15, 85], [38, 85], [62, 85], [85, 85], [85, 62], [85, 38], [85, 15]], ORDER = [0, 6, 1, 5, 2, 4, 3], TIP = 3;
+  const KIND = [{}, { bad: 'black' }, {}, { hole: 1, lime: 1 }, { bad: 'blur' }, {}, { bad: 'sky' }];   // what each frame of the pass shows
+  function stand(g, q, w, hh, stem, rot) {
+    const c = proj(g, q[0], q[1]), el = s('g', {}, g.slab), x = c[0] - w / 2, y = c[1] - stem - hh;
+    s('ellipse', { class: 'foot', cx: c[0], cy: c[1], rx: w * 0.34, ry: w * 0.34 * ratio }, el);
+    s('line', { class: 'stem', x1: c[0], y1: c[1], x2: c[0], y2: c[1] - stem }, el);
+    const body = s('g', rot ? { transform: 'rotate(' + rot + ' ' + c[0].toFixed(1) + ' ' + (y + hh / 2).toFixed(1) + ')' } : {}, el);
+    return { el: body, x: x, y: y, cx: c[0], cy: y + hh / 2, ground: c };
+  }
+  function isoBox(g, x, y, w, d, z0, z1, cls) {
+    const A = function (px, py, l) { return proj(g, px, py, l); }, k = cls || ['b-l', 'b-r', 'b-top'];
+    s('polygon', { class: k[0], points: pts([A(x, y + d, z0), A(x + w, y + d, z0), A(x + w, y + d, z1), A(x, y + d, z1)]) }, g.slab);
+    s('polygon', { class: k[1], points: pts([A(x + w, y, z0), A(x + w, y + d, z0), A(x + w, y + d, z1), A(x + w, y, z1)]) }, g.slab);
+    s('polygon', { class: k[2], points: pts([A(x, y, z1), A(x + w, y, z1), A(x + w, y + d, z1), A(x, y + d, z1)]) }, g.slab);
+  }
+  function tag(parent, cx, bottom, label, lime) {
+    const w = label.length * 8.5 + 14;
+    s('rect', { class: lime ? 'p-fill' : 'chip', x: cx - w / 2, y: bottom - 20, width: w, height: 20, rx: 4 }, parent);
+    s('text', { class: lime ? 'tiny on-lime' : 'tiny', x: cx, y: bottom - 6, 'text-anchor': 'middle' }, parent).textContent = label;
+  }
+
+  /* 01 Capture: just the roads, and the fleet rushing along them like comets */
+  (function () {
+    const g = G[0], f = g.flat();
+    const roads = [[3, 85, 97, 85], [85, 3, 85, 97], [3, 52, 97, 52], [52, 3, 52, 97], [3, 20, 97, 20], [20, 3, 20, 97]];
+    roads.forEach(function (q) { s('line', { class: 'road-line', x1: q[0], y1: q[1], x2: q[2], y2: q[3] }, f); });
+    [[0, 0.24, 1], [0, 0.66, -1], [1, 0.3, 1], [1, 0.62, -1], [2, 0.2, -1], [2, 0.74, 1], [3, 0.42, 1], [3, 0.9, -1], [4, 0.36, 1], [4, 0.8, -1], [5, 0.14, 1], [5, 0.58, -1]].forEach(function (c, k) {
+      const r = roads[c[0]], on = function (q) { q = Math.max(0, Math.min(1, q)); return proj(g, r[0] + (r[2] - r[0]) * q, r[1] + (r[3] - r[1]) * q); };
+      const head = on(c[1]), tail = on(c[1] - c[2] * 0.2);
+      const gr = s('linearGradient', { id: 'comet' + k, gradientUnits: 'userSpaceOnUse', x1: head[0], y1: head[1], x2: tail[0], y2: tail[1] }, defs);
+      s('stop', { offset: 0, class: 'comet-a' }, gr); s('stop', { offset: 1, class: 'comet-b' }, gr);
+      s('line', { class: 'comet', x1: head[0], y1: head[1], x2: tail[0], y2: tail[1], stroke: 'url(#comet' + k + ')' }, g.slab);
+      s('circle', { class: 'car', cx: head[0], cy: head[1], r: 3 }, g.slab);
+    });
+    const c = proj(g, 85, 85); s('circle', { class: 'p-fill', cx: c[0], cy: c[1], r: 6 }, g.slab);
+    P.push(c);
+  })();
+
+  /* 02 Quality gate: a plate with holes. A good frame goes up through its hole in a beam of light
+     towards Detection; black, blurred and sky frames find no hole and stay under the plate */
+  (function () {
+    const g = G[1], f = g.flat(), above = G[2];
+    for (let x = 8; x <= 92; x += 12) for (let y = 8; y <= 92; y += 12) s('circle', { class: 'perf', cx: x, cy: y, r: 1.2 }, f);
+    ORDER.forEach(function (i) {
+      const c = proj(g, V[i][0], V[i][1]);
+      if (KIND[i].bad) {
+        const fy = c[1] + 56, stuck = s('g', { transform: 'rotate(' + (i % 2 ? 13 : -15) + ' ' + c[0].toFixed(1) + ' ' + fy.toFixed(1) + ')' }, g.slab);
+        CWM.street(stuck, c[0] - 19, fy - 13, 38, 26, { bad: KIND[i].bad, out: 1 });
+        return;
+      }
+      const t = proj(above, V[i][0], V[i][1]), up = 34;
+      s('circle', { class: 'hole lit', cx: V[i][0], cy: V[i][1], r: 7.5 }, f);
+      s('polygon', { class: 'beam', points: pts([[c[0] - 26, c[1]], [c[0] + 26, c[1]], [t[0] + 30, t[1]], [t[0] - 30, t[1]]]) }, g.slab);
+      CWM.street(s('g', {}, g.slab), c[0] - 23, c[1] - up - 31, 46, 31, KIND[i]);
+      if (i === TIP) P.push([c[0], c[1] - up - 15.5]);
+    });
+  })();
+
+  /* 03 Detection: findings the way Command & Control draws them, a coloured box with its name */
+  (function () {
+    const g = G[2], w = 60, hh = 40;
+    const found = { 0: ['Fence', 'det-red', [0.05, 0.14, 0.27, 0.36], 10], 2: ['Graffiti', 'det-blue', [0.64, 0.2, 0.26, 0.28], 12], 3: ['Pothole', 'p', null, 14], 5: ['Lamp post', 'det-orange', [0.83, 0.12, 0.15, 0.68], 10] };   // the last number is the lift: low enough for the name to clear the slab above
+    ORDER.forEach(function (i) {
+      if (!(i in found)) return;
+      const c = proj(g, V[i][0], V[i][1]), q = found[i], lime = i === TIP, x = c[0] - w / 2, y = c[1] - q[3] - hh, el = s('g', {}, g.slab);
+      s('ellipse', { class: 'foot', cx: c[0], cy: c[1], rx: w * 0.34, ry: w * 0.34 * ratio }, el);
+      const pt = CWM.street(el, x, y, w, hh, lime ? { hole: 1 } : i === 5 ? { lamp: 1 } : {});
+      const r = lime ? [pt[0] - 11, pt[1] - 7, 22, 14] : [x + w * q[2][0], y + hh * q[2][1], w * q[2][2], hh * q[2][3]];
+      s('rect', { class: 'det ' + q[1], x: r[0], y: r[1], width: r[2], height: r[3] }, el);
+      const tw = q[0].length * 8.5 + 12, tx = Math.min(r[0] - 1, x + w - tw), ty = y - 20;
+      s('line', { class: 'det ' + q[1], x1: r[0], y1: r[1], x2: r[0], y2: ty + 18 }, el);
+      s('rect', { class: lime ? 'p-fill' : 'det-fill ' + q[1], x: tx, y: ty, width: tw, height: 18, rx: 2 }, el);
+      s('text', { class: 'tiny on-lime', x: tx + tw / 2, y: ty + 13.5, 'text-anchor': 'middle' }, el).textContent = q[0];
+      if (lime) P.push([c[0], y + hh / 2]);
+    });
+  })();
+
+  /* 04 Asset registry: every finding becomes one record, filed in the stack of its category */
+  (function () {
+    const g = G[3], th = 6;
+    const stacks = [['Fence', 25, 85, 7], ['Advertising', 85, 25, 4], ['Graffiti', 55, 85, 5], ['Lamp post', 85, 55, 9], ['Pothole', 85, 85, 6]];
+    stacks.forEach(function (q) {
+      const lime = q[0] === 'Pothole';
+      for (let m = 0; m < q[3]; m++) isoBox(g, q[1] - 6.5, q[2] - 6.5, 13, 13, m * th, (m + 1) * th, lime && m === q[3] - 1 ? ['b-l', 'b-r', 'b-top p-fill'] : null);
+      const c = proj(g, q[1], q[2], q[3] * th);
+      if (lime) P.push([c[0], c[1]]);
+    });
+  })();
+
+  /* 05 Case: a card per violation with the photos as evidence and its status */
+  (function () {
+    const g = G[4], w = 72, hh = 74;
+    [[40, 85, 0], [85, 40, 0], [85, 85, 1]].forEach(function (q) {
+      const c = stand(g, q, w, hh, 6), lime = q[2], opt = lime ? { hole: 1 } : {};
+      s('rect', { class: lime ? 'card p' : 'card', x: c.x, y: c.y, width: w, height: hh, rx: 4 }, c.el);
+      CWM.street(c.el, c.x + 6, c.y + 6, 28, 20, opt); CWM.street(c.el, c.x + 38, c.y + 6, 28, 20, opt);
+      for (let k = 0; k < 2; k++) s('line', { class: 'card-ink', x1: c.x + 6, y1: c.y + 36 + k * 9, x2: c.x + w - 8 - k * 18, y2: c.y + 36 + k * 9 }, c.el);
+      if (lime) {
+        tag(s('g', { class: 'open-only' }, c.el), c.x + 6 + 23.5, c.y + hh - 6, 'Open', true);
+        tag(s('g', { class: 'closed-only' }, c.el), c.x + 6 + 32.5, c.y + hh - 6, 'Closed', false);
+        P.push([c.cx, c.cy]);
+      } else s('circle', { class: 'rec', cx: c.x + 11, cy: c.y + hh - 12, r: 4 }, c.el);
+    });
+  })();
+
+  /* 06 Digital twin: the whole city, open violations pinned on it, widgets standing on top */
+  (function () {
+    const g = G[5], f = g.flat();
+    [[33, 4, 6, 92], [67, 4, 6, 92], [4, 33, 92, 6], [4, 67, 92, 6]].forEach(function (q) { s('rect', { class: 'road', x: q[0], y: q[1], width: q[2], height: q[3] }, f); });
+    /* low-rise blocks, and the glass towers of Riyadh standing among them (models/ksa-towers.mjs, drawn by isomap) */
+    const T = window.CWM_TOWERS || {};
+    const towers = [['pif', 84.5, 18.5, 9], ['majdoul', 46, 12, 5], ['faisaliah', 18.5, 53, 8], ['kingdom', 53, 53, 11], ['slab-a', 80, 47, 5], ['slab-b', 12, 80, 4]];
+    const spans = [[6, 31], [41, 65], [75, 94]], items = [];
+    spans.forEach(function (bx) { spans.forEach(function (by) {
+      const w = (bx[1] - bx[0] - 4) / 3, d = (by[1] - by[0] - 4) / 3;
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+        const x = bx[0] + i * (w + 2), y = by[0] + j * (d + 2), mx = x + w / 2, my = y + d / 2, lot = rnd(), hh = 3 + rnd() * rnd() * 20;
+        if (lot > 0.86 || towers.some(function (q) { return Math.max(Math.abs(q[1] - mx), Math.abs(q[2] - my)) < q[3]; })) continue;
+        items.push({ k: mx + my, box: [x, y, w, d, hh] });
+      }
+    }); });
+    towers.forEach(function (q) { if (T[q[0]]) items.push({ k: q[1] + q[2], tower: q }); });
+    items.sort(function (a, b) { return a.k - b.k; }).forEach(function (it) {
+      if (it.tower) {
+        const o = T[it.tower[0]], c = proj(g, it.tower[1], it.tower[2]);
+        s('g', { class: 'tower', transform: 'translate(' + (c[0] - o.ax).toFixed(1) + ' ' + (c[1] - o.ay).toFixed(1) + ')' }, g.slab).innerHTML = o.svg;
+        return;
+      }
+      const x = it.box[0], y = it.box[1], w = it.box[2], d = it.box[3], hh = it.box[4];
+      const A = function (px, py, l) { return proj(g, px, py, l); };
+      s('polygon', { class: 'b-l', points: pts([A(x, y + d), A(x + w, y + d), A(x + w, y + d, hh), A(x, y + d, hh)]) }, g.slab);
+      s('polygon', { class: 'b-r', points: pts([A(x + w, y), A(x + w, y + d), A(x + w, y + d, hh), A(x + w, y, hh)]) }, g.slab);
+      s('polygon', { class: 'b-top', points: pts([A(x, y, hh), A(x + w, y, hh), A(x + w, y + d, hh), A(x, y + d, hh)]) }, g.slab);
+    });
+    [[36, 18], [36, 86], [88, 70], [53, 36], [70, 47]].forEach(function (q) {
+      const a = proj(g, q[0], q[1]); s('line', { class: 'pin', x1: a[0], y1: a[1], x2: a[0], y2: a[1] - 26 }, g.slab); s('circle', { class: 'pin-dot', cx: a[0], cy: a[1] - 26, r: 4 }, g.slab);
+    });
+    const a = proj(g, 70, 70);
+    const open = s('g', { class: 'open-only' }, g.slab);
+    s('line', { class: 'pin p', x1: a[0], y1: a[1], x2: a[0], y2: a[1] - 34 }, open);
+    s('circle', { class: 'p-fill', cx: a[0], cy: a[1] - 34, r: 6 }, open);
+    s('circle', { class: 'pin p', cx: a[0], cy: a[1] - 34, r: 11 }, open);
+    s('ellipse', { class: 'pin closed-only', cx: a[0], cy: a[1], rx: 9, ry: 3.4, 'stroke-dasharray': '2 3' }, g.slab);
+    P.push([a[0], a[1]]);
+  })();
+
+  /* the pothole thread and the travelling token */
+  const thread = s('path', { class: 'thread', d: 'M' + P.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L') }, art);
+  const token = s('circle', { class: 'token', r: 7 }, art);
+  const cum = [0]; for (let k = 1; k < P.length; k++) cum.push(cum[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]));
+  let raf = 0;
+  function travel(path, from, to, ms) {   // on a timer, so the token keeps moving in a background tab
+    clearInterval(raf); const t0 = performance.now(); token.classList.add('on');
+    const fr = function () { const q = Math.min(1, (performance.now() - t0) / ms), e = q < .5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2, p = path.getPointAtLength(from + (to - from) * e);
+      token.setAttribute('cx', p.x); token.setAttribute('cy', p.y); if (q >= 1) clearInterval(raf); };
+    fr(); raf = setInterval(fr, 33);
+  }
+
+  /* copy: the loop note and the six rows, each row level with its slab */
+  const note = document.getElementById('loopnote'); note.className = 'loop-note';
+  note.innerHTML = '<h3>' + loop.title + '</h3><p>' + loop.text + '</p>';
+  let pinned = null;
+  function setActive(i) {
+    stage.classList.toggle('has-active', i != null);
+    slabs.forEach(function (el, k) { el.classList.toggle('active', k === i); });
+    rowEls.forEach(function (el, k) { el.classList.toggle('active', k === i); });
+  }
+  const handlers = {
+    onFocus: function (i) { if (!play.on()) setActive(i != null ? i : pinned); },
+    onPick: function (i) { play.stop(); pinned = pinned === i ? null : i; setActive(pinned); },
+  };
+  const rowEls = CWM.rows(document.getElementById('rows'), handlers);
+  rowEls.forEach(function (el, i) { el.style.top = (G[i].cy - 16) + 'px'; });
+  slabs.forEach(function (el, i) {
+    el.addEventListener('mouseenter', function () { handlers.onFocus(i); });
+    el.addEventListener('mouseleave', function () { handlers.onFocus(null); });
+    el.addEventListener('click', function () { handlers.onPick(i); });
+  });
+
+  const STEP = 1500; let dayTimer = 0;   // the day turns on a timer, not on the animation frame, so a hidden tab stays in step
+  const play = CWM.player(function (k) {
+    clearTimeout(dayTimer);
+    if (k == null) { clearInterval(raf); token.classList.remove('on'); art.classList.remove('day2'); pinned = null; setActive(null); return; }
+    if (k < 6) { setActive(k); travel(thread, k ? cum[k - 1] : 0, cum[k], k ? 700 : 1); return; }
+    setActive(null);
+    travel(loopPath, 0, loopPath.getTotalLength(), STEP * 2 - 300);
+    dayTimer = setTimeout(function () { art.classList.toggle('day2'); }, STEP * 2 - 300);
+  }, STEP);
+
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(CWM.ready);
+})();
+</script>
+</body></html>
